@@ -59,12 +59,18 @@ void snif::Sniffer::process() {
                            std::string(pcap_geterr(device_)));
   }
 
-  std::time_t fin_time = std::time(nullptr) + params_.timeout;
-
-  auto forw_args = std::make_tuple(&dict_, &fin_time, device_);
-
-  if (pcap_loop(device_, params_.n_packs, handler, (u_char *)(&forw_args)) !=
-      0) {
+  decltype(handler_with_timeout) *handler;
+  u_char *forw_data;
+  if (params_.timeout > 0) {
+    handler = handler_with_timeout;
+    std::time_t fin_time = std::time(nullptr) + params_.timeout;
+    auto forw_args = std::make_tuple(&dict_, &fin_time, device_);
+    forw_data = (u_char *)&forw_args;
+  } else {
+    handler = handler_without_timeout;
+    forw_data = (u_char *)&dict_;
+  }
+  if (pcap_loop(device_, params_.n_packs, handler, forw_data) != 0) {
     throw SnifferException(std::string("Error while sniffing: ") +
                            std::string(pcap_geterr(device_)));
   }

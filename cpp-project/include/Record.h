@@ -1,11 +1,10 @@
 #ifndef RECORD_H
 #define RECORD_H
 
-#include "../include/pcap.h"
+#include "pcap.h"
 #include <iostream>
 
-namespace snif{
-
+namespace snif {
 
 struct RecordKey {
   uint ip_src = 0;
@@ -13,6 +12,11 @@ struct RecordKey {
 
   uint16_t port_src = 0;
   uint16_t port_dst = 0;
+
+  RecordKey() noexcept = default;
+  RecordKey(const RecordKey &o) noexcept = default;
+  RecordKey(RecordKey &&o) noexcept = default;
+
   bool operator==(const RecordKey &rhs) const {
     return ip_src == rhs.ip_src && ip_dst == rhs.ip_dst &&
            port_src == rhs.port_src && port_dst == rhs.port_dst;
@@ -24,12 +28,20 @@ struct PacketRecord {
   RecordKey key{};
 
   size_t n_bytes = 0;
+
+  PacketRecord() noexcept = default;
+  PacketRecord(const PacketRecord &) noexcept = default;
+  PacketRecord(PacketRecord &&) noexcept = default;
 };
 
 struct RecordSupply {
 
   size_t n_packets = 0;
   size_t n_bytes = 0;
+
+  RecordSupply() noexcept = default;
+  RecordSupply(const RecordSupply &) noexcept = default;
+  RecordSupply(RecordSupply &&) noexcept = default;
 };
 
 // char ip_src[INET_ADDRSTRLEN];
@@ -64,6 +76,6 @@ struct RecordHash {
             (std::hash<uint16_t>{}(key.port_dst) << 2));
   }
 };
-}
+} // namespace snif
 
 #endif

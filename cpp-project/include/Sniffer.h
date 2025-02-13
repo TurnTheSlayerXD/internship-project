@@ -45,12 +45,7 @@ public:
 
   Sniffer(const Sniffer &other) = delete;
   Sniffer(Sniffer &&other) noexcept;
-
   Sniffer &operator=(const Sniffer &other) = delete;
-  Sniffer &operator=(Sniffer &&other) noexcept {
-    Sniffer(std::move(other));
-    return *this;
-  }
 
   ~Sniffer() noexcept;
 
@@ -60,19 +55,32 @@ public:
   void write_to_csv(const char *out_path);
 
 private:
-  static void handler(u_char *userData, const struct pcap_pkthdr *pkthdr,
-                      const u_char *packet) {
-
+  static void handler_without_timeout(u_char *userData,
+                                      const struct pcap_pkthdr *pkthdr,
+                                      const u_char *packet) {
+    auto dict =
+        (std::unordered_map<snif::RecordKey, snif::RecordSupply, RecordHash>
+             *)(userData);
+    base_handler(dict, pkthdr, packet);
+  }
+  static void handler_with_timeout(u_char *userData,
+                                   const struct pcap_pkthdr *pkthdr,
+                                   const u_char *packet) {
     auto [dict, fin_time, device] =
         *(std::tuple<std::unordered_map<snif::RecordKey, snif::RecordSupply,
                                         RecordHash> *,
                      std::time_t *, pcap_t *> *)(userData);
 
     std::time_t cur = std::time(nullptr);
-
     if (cur >= *fin_time) {
       pcap_breakloop(device);
     }
+    base_handler(dict, pkthdr, packet);
+  }
+
+  static void base_handler(
+      std::unordered_map<snif::RecordKey, snif::RecordSupply, RecordHash> *dict,
+      const struct pcap_pkthdr *pkthdr, const u_char *packet) {
 
     auto add_to_dict = [&dict](const PacketRecord &record) {
       if (!dict->contains(record.key)) {
