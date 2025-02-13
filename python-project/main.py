@@ -3,7 +3,17 @@ import argparse
 
 
 def process(in_path: str, out_path: str):
-    df = pd.read_csv(in_path)
+    df = pd.read_csv(
+        in_path,
+        dtype={
+            "ip_src": str,
+            "ip_dst": str,
+            "port_src": int,
+            "port_dst": int,
+            "n_packets": int,
+            "n_bytes": int,
+        },
+    )
     sent_df = (
         df.groupby(["ip_src"])
         .agg({"n_packets": "sum", "n_bytes": "sum"})
@@ -39,7 +49,6 @@ def my_parse() -> (str, str):
 
     import os.path as pat
 
-    print(in_path, out_path)
     if out_path == None:
         out_path = pat.join(
             pat.dirname(pat.abspath(in_path)),

@@ -1,3 +1,0 @@
-/home/andrew/internship-project/cpp-project/build/CMakeFiles/sniffer.dir
-/home/andrew/internship-project/cpp-project/build/CMakeFiles/edit_cache.dir
-/home/andrew/internship-project/cpp-project/build/CMakeFiles/rebuild_cache.dir

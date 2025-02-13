@@ -53,7 +53,7 @@ void build_filter_expr(char *const dst) {
 
 void snif::Sniffer::process() {
 
-#ifdef WITH_FILTER
+#ifdef WITH_FILTER // because if there is filter for tcp, udp timeout won't be working
   bpf_program filter;
 
   char filter_expr[filter_len];
@@ -92,15 +92,15 @@ void snif::Sniffer::process() {
                            pcap_geterr(device_));
   }
 }
-void snif::Sniffer::write_to_stdout() {
+void snif::Sniffer::write_to_stdout() const{
 
   std::cout << csvheader;
   for (const auto &[key, value] : dict_) {
-    std::cout << "WTF" << snif::to_string(key, value) << "\n";
+    std::cout << snif::to_string(key, value) << "\n";
   }
 }
 
-void snif::Sniffer::write_to_csv(const char *out_path) {
+void snif::Sniffer::write_to_csv(const char *out_path)const {
 
   std::FILE *f = nullptr;
 

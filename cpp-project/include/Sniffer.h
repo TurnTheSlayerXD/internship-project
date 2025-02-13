@@ -50,9 +50,9 @@ public:
   ~Sniffer() noexcept;
 
   void process();
-  void write_to_stdout();
+  void write_to_stdout() const;
 
-  void write_to_csv(const char *out_path);
+  void write_to_csv(const char *out_path) const;
 
 private:
   static void handler_without_timeout(u_char *userData,

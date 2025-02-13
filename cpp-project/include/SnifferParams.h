@@ -14,7 +14,7 @@ struct SnifferParams {
   time_t timeout;
   SnifferParams() noexcept
       : n_packs{-1}, device_type{InputDevice::Undefined},
-        device_arg{nullptr}, timeout{0} {}
+        device_arg{nullptr}, timeout{10} {}
   SnifferParams(const SnifferParams &params) noexcept = default;
   SnifferParams(SnifferParams &&params) noexcept = default;
   SnifferParams &operator=(const SnifferParams &params) noexcept = default;
