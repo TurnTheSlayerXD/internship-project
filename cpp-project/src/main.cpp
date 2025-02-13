@@ -16,7 +16,7 @@ int main(int argc, char **argv) {
       "-t --timeout : amount of time to snif, default: 10, for endless <=0 \n";
   snif::SnifferParams params;
 
-  const char *out_path = "data_X.csv";
+  const char *out_path = "data_0.csv";
 
   for (int i = 1; i < argc; i += 2) {
     if (std::strcmp("-h", argv[i]) == 0 ||

@@ -48,12 +48,11 @@ void build_filter_expr(char *const dst) {
 
   auto tcp = getprotobyname("tcp")->p_proto;
   auto udp = getprotobyname("udp")->p_proto;
-  snprintf(dst, filter_len, "ip proto %d and ip proto %d", tcp, udp);
+  snprintf(dst, filter_len, "ip proto %d or ip proto %d", tcp, udp);
 }
 
 void snif::Sniffer::process() {
 
-#ifdef WITH_FILTER // because if there is filter for tcp, udp timeout won't be working
   bpf_program filter;
 
   char filter_expr[filter_len];
@@ -68,7 +67,6 @@ void snif::Sniffer::process() {
     throw SnifferException(std::string("Unable to install filter: ") +
                            std::string(pcap_geterr(device_)));
   }
-#endif
 
   pcap_handler handler;
   u_char *forw_data;
@@ -92,7 +90,7 @@ void snif::Sniffer::process() {
                            pcap_geterr(device_));
   }
 }
-void snif::Sniffer::write_to_stdout() const{
+void snif::Sniffer::write_to_stdout() const {
 
   std::cout << csvheader;
   for (const auto &[key, value] : dict_) {
@@ -100,7 +98,7 @@ void snif::Sniffer::write_to_stdout() const{
   }
 }
 
-void snif::Sniffer::write_to_csv(const char *out_path)const {
+void snif::Sniffer::write_to_csv(const char *out_path) const {
 
   std::FILE *f = nullptr;
 
@@ -111,10 +109,14 @@ void snif::Sniffer::write_to_csv(const char *out_path)const {
 
   namespace fs = std::filesystem;
 
-  if (fs::is_directory(out_path)) {
+  fs::path fs_pat{out_path};
+  if (fs::exists(fs_pat)) {
+    if (!fs::is_directory(fs_pat)) {
+      fs_pat = fs_pat.parent_path();
+    }
     char nm[20];
     std::snprintf(nm, 20, "data_%d.csv", 0);
-    fs::path fs_pat{std::string(out_path) + nm};
+    fs_pat += nm;
     for (int i = 1; fs::exists(fs_pat); ++i) {
       std::snprintf(nm, 20, "data_%d.csv", i);
       fs_pat.replace_filename(nm);
