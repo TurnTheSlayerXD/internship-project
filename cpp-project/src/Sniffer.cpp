@@ -30,7 +30,14 @@ snif::Sniffer::Sniffer(const SnifferParams &params) : params_{params} {
   }
 }
 
-snif::Sniffer::~Sniffer() {
+snif::Sniffer::Sniffer(Sniffer &&other) noexcept {
+  device_ = other.device_;
+  other.device_ = nullptr;
+  params_ = other.params_;
+  dict_ = std::move(other.dict_);
+}
+
+snif::Sniffer::~Sniffer() noexcept {
   if (device_ != nullptr) {
     pcap_close(device_);
   }
@@ -38,9 +45,77 @@ snif::Sniffer::~Sniffer() {
 
 void snif::Sniffer::process() {
 
-    pcap_compile("")
+  bpf_program filter;
 
+  const char *filter_expr = "";
+
+  if (pcap_compile(device_, &filter, filter_expr, 0, PCAP_NETMASK_UNKNOWN) ==
+      -1) {
+    throw SnifferException(std::string("Unable to compile filter: ") +
+                           std::string(pcap_geterr(device_)));
+  }
+  if (pcap_setfilter(device_, &filter) == -1) {
+    throw SnifferException(std::string("Unable to install filter: ") +
+                           std::string(pcap_geterr(device_)));
+  }
+
+  std::time_t fin_time = std::time(nullptr) + params_.timeout;
+
+  auto forw_args = std::make_tuple(&dict_, &fin_time, device_);
+
+  if (pcap_loop(device_, params_.n_packs, handler, (u_char *)(&forw_args)) !=
+      0) {
+    throw SnifferException(std::string("Error while sniffing: ") +
+                           std::string(pcap_geterr(device_)));
+  }
 }
-void snif::Sniffer::write_to_stdout() {}
+void snif::Sniffer::write_to_stdout() {
 
-void snif::Sniffer::write_to_csv() 
+  std::cout << csvheader;
+  for (const auto &[key, value] : dict_) {
+    std::cout << snif::to_string(key, value) << "\n";
+  }
+}
+
+void snif::Sniffer::write_to_csv(const char *out_path) {
+
+  std::FILE *f = nullptr;
+
+  Finite fin{[&f]() {
+    if (f != nullptr)
+      std::fclose(f);
+  }};
+
+  namespace fs = std::filesystem;
+
+  char nm[20];
+  std::snprintf(nm, 20, "data_%d.csv", 0);
+  fs::path fs_pat{std::string(out_path) + nm};
+
+  for (int i = 1; fs::exists(fs_pat); ++i) {
+    std::snprintf(nm, 20, "data_%d.csv", i);
+    fs_pat.replace_filename(nm);
+    if (i >= 1000) {
+      throw SnifferException(std::string("Too many files with same name: ") +
+                             fs_pat.c_str());
+    }
+  }
+
+  out_path = fs_pat.c_str();
+  if (!(f = std::fopen(out_path, "w"))) {
+    throw SnifferException(std::string("Unable to write to directory: ") +
+                           out_path);
+  }
+  if (std::fwrite(csvheader, std::strlen(csvheader), 1, f) != 1) {
+    throw SnifferException(
+        std::string("Error occured while writing to file: ") + out_path);
+  }
+
+  for (const auto &[key, value] : dict_) {
+    const auto str = snif::to_string(key, value) + "\n";
+    if (std::fwrite(str.c_str(), str.size(), 1, f) != 1) {
+      throw SnifferException(
+          std::string("Error occured while writing to file: ") + out_path);
+    }
+  }
+}

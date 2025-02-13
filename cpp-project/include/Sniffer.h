@@ -12,13 +12,17 @@
 #include <netinet/tcp.h>
 #include <netinet/udp.h>
 
+#include <ctime>
+
+#include <filesystem>
+
 namespace snif {
 class SnifferException : std::exception {
 
   std::string reason_;
 
 public:
-  SnifferException(std::string &&reason) : reason_{std::move(reason) + "\n"} {}
+  SnifferException(std::string &&reason) : reason_{reason + "\n"} {}
 
   const char *what() const noexcept override { return reason_.c_str(); }
 };
@@ -34,25 +38,41 @@ class Sniffer {
   std::unordered_map<RecordKey, RecordSupply, RecordHash> dict_;
   SnifferParams params_;
   static constexpr const char *csvheader = "ip_src,ip_dst,port_src,port_dst,"
-                                         "n_packets,n_bytes\n";
+                                           "n_packets,n_bytes\n";
 
 public:
   Sniffer(const SnifferParams &params);
 
-  ~Sniffer();
+  Sniffer(const Sniffer &other) = delete;
+  Sniffer(Sniffer &&other) noexcept;
+
+  Sniffer &operator=(const Sniffer &other) = delete;
+  Sniffer &operator=(Sniffer &&other) noexcept {
+    Sniffer(std::move(other));
+    return *this;
+  }
+
+  ~Sniffer() noexcept;
 
   void process();
   void write_to_stdout();
 
-  void write_to_csv();
+  void write_to_csv(const char *out_path);
 
 private:
   static void handler(u_char *userData, const struct pcap_pkthdr *pkthdr,
                       const u_char *packet) {
 
-    auto *dict = reinterpret_cast<
-        std::unordered_map<snif::RecordKey, snif::RecordSupply, RecordHash> *>(
-        userData);
+    auto [dict, fin_time, device] =
+        *(std::tuple<std::unordered_map<snif::RecordKey, snif::RecordSupply,
+                                        RecordHash> *,
+                     std::time_t *, pcap_t *> *)(userData);
+
+    std::time_t cur = std::time(nullptr);
+
+    if (cur >= *fin_time) {
+      pcap_breakloop(device);
+    }
 
     auto add_to_dict = [&dict](const PacketRecord &record) {
       if (!dict->contains(record.key)) {
