@@ -43,11 +43,21 @@ snif::Sniffer::~Sniffer() noexcept {
   }
 }
 
+static constexpr int filter_len = 30;
+void build_filter_expr(char *const dst) {
+
+  auto tcp = getprotobyname("tcp")->p_proto;
+  auto udp = getprotobyname("udp")->p_proto;
+  snprintf(dst, filter_len, "ip proto %d and ip proto %d", tcp, udp);
+}
+
 void snif::Sniffer::process() {
 
+#ifdef WITH_FILTER
   bpf_program filter;
 
-  const char *filter_expr = "";
+  char filter_expr[filter_len];
+  build_filter_expr(filter_expr);
 
   if (pcap_compile(device_, &filter, filter_expr, 0, PCAP_NETMASK_UNKNOWN) ==
       -1) {
@@ -58,28 +68,35 @@ void snif::Sniffer::process() {
     throw SnifferException(std::string("Unable to install filter: ") +
                            std::string(pcap_geterr(device_)));
   }
+#endif
 
-  decltype(handler_with_timeout) *handler;
+  pcap_handler handler;
   u_char *forw_data;
+  std::time_t fin_time = std::time(nullptr) + params_.timeout;
+  std::tuple<decltype(dict_) *, time_t *, pcap_t *> forw_args;
+
   if (params_.timeout > 0) {
+
     handler = handler_with_timeout;
-    std::time_t fin_time = std::time(nullptr) + params_.timeout;
-    auto forw_args = std::make_tuple(&dict_, &fin_time, device_);
+    forw_args = std::make_tuple(&dict_, &fin_time, device_);
     forw_data = (u_char *)&forw_args;
   } else {
     handler = handler_without_timeout;
     forw_data = (u_char *)&dict_;
   }
-  if (pcap_loop(device_, params_.n_packs, handler, forw_data) != 0) {
+  int error;
+
+  if ((error = pcap_loop(device_, params_.n_packs, handler, forw_data)) != 0 &&
+      error != PCAP_ERROR_BREAK) {
     throw SnifferException(std::string("Error while sniffing: ") +
-                           std::string(pcap_geterr(device_)));
+                           pcap_geterr(device_));
   }
 }
 void snif::Sniffer::write_to_stdout() {
 
   std::cout << csvheader;
   for (const auto &[key, value] : dict_) {
-    std::cout << snif::to_string(key, value) << "\n";
+    std::cout << "WTF" << snif::to_string(key, value) << "\n";
   }
 }
 
@@ -94,20 +111,21 @@ void snif::Sniffer::write_to_csv(const char *out_path) {
 
   namespace fs = std::filesystem;
 
-  char nm[20];
-  std::snprintf(nm, 20, "data_%d.csv", 0);
-  fs::path fs_pat{std::string(out_path) + nm};
-
-  for (int i = 1; fs::exists(fs_pat); ++i) {
-    std::snprintf(nm, 20, "data_%d.csv", i);
-    fs_pat.replace_filename(nm);
-    if (i >= 1000) {
-      throw SnifferException(std::string("Too many files with same name: ") +
-                             fs_pat.c_str());
+  if (fs::is_directory(out_path)) {
+    char nm[20];
+    std::snprintf(nm, 20, "data_%d.csv", 0);
+    fs::path fs_pat{std::string(out_path) + nm};
+    for (int i = 1; fs::exists(fs_pat); ++i) {
+      std::snprintf(nm, 20, "data_%d.csv", i);
+      fs_pat.replace_filename(nm);
+      if (i >= 1000) {
+        throw SnifferException(std::string("Too many files with same name: ") +
+                               fs_pat.c_str());
+      }
     }
+    out_path = fs_pat.c_str();
   }
 
-  out_path = fs_pat.c_str();
   if (!(f = std::fopen(out_path, "w"))) {
     throw SnifferException(std::string("Unable to write to directory: ") +
                            out_path);

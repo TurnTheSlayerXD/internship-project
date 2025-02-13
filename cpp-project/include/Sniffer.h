@@ -3,9 +3,9 @@
 
 #include "Record.h"
 #include "SnifferParams.h"
-#include <unordered_map>
-
+#include <cassert>
 #include <cstring>
+#include <unordered_map>
 
 #include <net/ethernet.h>
 #include <netinet/ip.h>
@@ -66,13 +66,15 @@ private:
   static void handler_with_timeout(u_char *userData,
                                    const struct pcap_pkthdr *pkthdr,
                                    const u_char *packet) {
+
     auto [dict, fin_time, device] =
         *(std::tuple<std::unordered_map<snif::RecordKey, snif::RecordSupply,
                                         RecordHash> *,
                      std::time_t *, pcap_t *> *)(userData);
 
-    std::time_t cur = std::time(nullptr);
-    if (cur >= *fin_time) {
+    std::time_t cur_time = std::time(nullptr);
+
+    if (cur_time >= *fin_time) {
       pcap_breakloop(device);
     }
     base_handler(dict, pkthdr, packet);

@@ -108,7 +108,6 @@ sniffer_EXTERNAL_OBJECTS =
 sniffer: CMakeFiles/sniffer.dir/src/main.cpp.o
 sniffer: CMakeFiles/sniffer.dir/src/Sniffer.cpp.o
 sniffer: CMakeFiles/sniffer.dir/build.make
-sniffer: /home/andrew/internship-project/cpp-project/lib/libpcap.a
 sniffer: CMakeFiles/sniffer.dir/link.txt
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --bold --progress-dir=/home/andrew/internship-project/cpp-project/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_3) "Linking CXX executable sniffer"
 	$(CMAKE_COMMAND) -E cmake_link_script CMakeFiles/sniffer.dir/link.txt --verbose=$(VERBOSE)

@@ -13,9 +13,15 @@ struct RecordKey {
   uint16_t port_src = 0;
   uint16_t port_dst = 0;
 
-  RecordKey() noexcept = default;
+  RecordKey(uint ip_src = 0, uint ip_dst = 0, uint16_t port_src = 0,
+            uint16_t port_dst = 0) noexcept
+      : ip_src{ip_src}, ip_dst{ip_dst}, port_src{port_src}, port_dst{port_dst} {
+  }
   RecordKey(const RecordKey &o) noexcept = default;
   RecordKey(RecordKey &&o) noexcept = default;
+
+  RecordKey &operator=(const RecordKey &o) noexcept = default;
+  RecordKey &operator=(RecordKey &&o) noexcept = default;
 
   bool operator==(const RecordKey &rhs) const {
     return ip_src == rhs.ip_src && ip_dst == rhs.ip_dst &&
@@ -25,23 +31,30 @@ struct RecordKey {
 
 struct PacketRecord {
 
-  RecordKey key{};
+  RecordKey key;
 
-  size_t n_bytes = 0;
+  size_t n_bytes;
 
-  PacketRecord() noexcept = default;
+  PacketRecord(const RecordKey &key = {}, size_t n_bytes = 0) noexcept
+      : key{key}, n_bytes{n_bytes} {}
+
   PacketRecord(const PacketRecord &) noexcept = default;
   PacketRecord(PacketRecord &&) noexcept = default;
+  PacketRecord &operator=(const PacketRecord &) noexcept = default;
+  PacketRecord &operator=(PacketRecord &&) noexcept = default;
 };
 
 struct RecordSupply {
 
-  size_t n_packets = 0;
-  size_t n_bytes = 0;
+  size_t n_packets;
+  size_t n_bytes;
 
-  RecordSupply() noexcept = default;
+  RecordSupply(size_t n_packets = 0, size_t n_bytes = 0) noexcept
+      : n_packets{n_packets}, n_bytes{n_bytes} {}
   RecordSupply(const RecordSupply &) noexcept = default;
   RecordSupply(RecordSupply &&) noexcept = default;
+  RecordSupply &operator=(const RecordSupply &) noexcept = default;
+  RecordSupply &operator=(RecordSupply &&) noexcept = default;
 };
 
 // char ip_src[INET_ADDRSTRLEN];

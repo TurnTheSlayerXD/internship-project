@@ -12,6 +12,5 @@ add_executable(sniffer src/main.cpp include/Record.h include/Sniffer.h include/S
 
 
 target_include_directories(sniffer PRIVATE ${CMAKE_SOURCE_DIR}/include)
-target_include_directories(sniffer PRIVATE ${CMAKE_SOURCE_DIR}/lib/pcap)
 target_link_libraries(sniffer libpcap.a)
 

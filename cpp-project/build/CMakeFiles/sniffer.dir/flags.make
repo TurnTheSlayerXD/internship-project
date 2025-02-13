@@ -4,7 +4,7 @@
 # compile CXX with /usr/bin/c++
 CXX_DEFINES = 
 
-CXX_INCLUDES = -I/home/andrew/internship-project/cpp-project/include -I/home/andrew/internship-project/cpp-project/lib/pcap
+CXX_INCLUDES = -I/home/andrew/internship-project/cpp-project/include
 
 CXX_FLAGS = -std=gnu++20
 
